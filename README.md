@@ -1,6 +1,10 @@
 # Sound Control
 
 <p align="center">
+  <img src="docs/images/app-icon.png" alt="Sound Control app icon" width="132">
+</p>
+
+<p align="center">
   <img src="docs/images/hero.png" alt="Sound Control hero preview" width="100%">
 </p>
 
