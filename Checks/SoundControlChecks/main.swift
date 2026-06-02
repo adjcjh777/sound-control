@@ -41,6 +41,10 @@ func checkVolumeStore() throws {
     let reloaded = VolumeStore(fileURL: url)
     try expect(reloaded.setting(for: "com.example.App").volume == 1.0, "volume should clamp to 1.0")
     try expect(reloaded.setting(for: "com.example.App").muted, "mute should persist")
+    try expect(reloaded.hasActiveOverrides, "muted app should count as an active override")
+    reloaded.setMuted(false, for: "com.example.App")
+    reloaded.resetDefaultIfPossible(for: "com.example.App")
+    try expect(!reloaded.hasActiveOverrides, "default settings should not keep background refresh active")
     try expect(!AppVolumeSetting().needsControl, "default setting should not need tap control")
     try expect(AppVolumeSetting(volume: 0.5).needsControl, "low volume should need tap control")
     try expect(AppVolumeSetting(volume: 1.0, muted: true).needsControl, "mute should need tap control")
@@ -81,6 +85,32 @@ func checkAggregateInputMapping() throws {
     try expect(
         ProcessTapController.inputIndexForOutput(outputIndex: 0, inputBufferCount: 1, outputBufferCount: 2) == 0,
         "single input buffer should be reused for first output buffer"
+    )
+}
+
+func checkRefreshPolicy() throws {
+    try expect(
+        RefreshPolicy.backgroundRefreshInterval >= 10.0,
+        "background refresh should avoid frequent idle polling"
+    )
+    try expect(
+        RefreshPolicy.backgroundRefreshTolerance >= 1.0,
+        "background refresh should provide timer tolerance for lower wakeups"
+    )
+    try expect(
+        RefreshPolicy.backgroundRefreshTolerance <= RefreshPolicy.backgroundRefreshInterval / 2,
+        "timer tolerance should stay below half of the refresh interval"
+    )
+}
+
+func checkPeakMeteringCost() throws {
+    try expect(
+        ProcessTapController.peakMeterSampleStride(for: 64) == 1,
+        "small buffers should keep exact peak metering"
+    )
+    try expect(
+        ProcessTapController.peakMeterSampleStride(for: 4096) > 1,
+        "large buffers should sample peak metering to avoid scanning every sample"
     )
 }
 
@@ -137,6 +167,8 @@ do {
     try checkVolumeStore()
     try checkSampleGain()
     try checkAggregateInputMapping()
+    try checkRefreshPolicy()
+    try checkPeakMeteringCost()
     print("SoundControlChecks: PASS")
 } catch {
     fputs("SoundControlChecks: FAIL - \(error.localizedDescription)\n", stderr)

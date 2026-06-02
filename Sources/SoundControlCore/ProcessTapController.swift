@@ -142,6 +142,11 @@ public final class ProcessTapController {
         return min(outputIndex, inputBufferCount - 1)
     }
 
+    public static func peakMeterSampleStride(for sampleCount: Int) -> Int {
+        guard sampleCount > 256 else { return 1 }
+        return max(1, sampleCount / 256)
+    }
+
     public func invalidate() {
         if aggregateDeviceID.isValid {
             if let deviceProcID {
@@ -225,7 +230,8 @@ public final class ProcessTapController {
 
             let inputSamples = inputPointer.assumingMemoryBound(to: Float.self)
             let selectedInputSampleCount = frameCount * inputChannels
-            for sampleIndex in 0..<selectedInputSampleCount {
+            let peakStride = Self.peakMeterSampleStride(for: selectedInputSampleCount)
+            for sampleIndex in stride(from: 0, to: selectedInputSampleCount, by: peakStride) {
                 let absSample = abs(inputSamples[sampleIndex])
                 if absSample > callbackPeak {
                     callbackPeak = absSample

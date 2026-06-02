@@ -22,9 +22,7 @@ final class MenuController: NSObject, NSMenuDelegate {
         statusItem.menu = menu
 
         refresh(forceRebuild: true)
-        timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            self?.refresh(forceRebuild: false)
-        }
+        updateBackgroundRefreshTimer()
     }
 
     func invalidate() {
@@ -54,11 +52,27 @@ final class MenuController: NSObject, NSMenuDelegate {
     private func refresh(forceRebuild: Bool) {
         let apps = monitor.refresh()
         mixer.sync(apps: apps)
+        updateBackgroundRefreshTimer()
         let signature = menuSignature(for: apps)
         guard forceRebuild || (!isMenuOpen && signature != currentMenuSignature) else {
             return
         }
         rebuildMenu(apps: apps, signature: signature)
+    }
+
+    private func updateBackgroundRefreshTimer() {
+        guard store.hasActiveOverrides else {
+            timer?.invalidate()
+            timer = nil
+            return
+        }
+        guard timer == nil else { return }
+
+        let refreshTimer = Timer.scheduledTimer(withTimeInterval: RefreshPolicy.backgroundRefreshInterval, repeats: true) { [weak self] _ in
+            self?.refresh(forceRebuild: false)
+        }
+        refreshTimer.tolerance = RefreshPolicy.backgroundRefreshTolerance
+        timer = refreshTimer
     }
 
     private func menuSignature(for apps: [AudioApp]) -> String {
@@ -89,6 +103,7 @@ final class MenuController: NSObject, NSMenuDelegate {
                 let row = AppRowController(app: app, store: store, errorMessage: mixer.error(for: app)) { [weak self] in
                     guard let self else { return }
                     self.mixer.sync(apps: self.monitor.activeApps)
+                    self.updateBackgroundRefreshTimer()
                 }
                 rowControllers.append(row)
 
