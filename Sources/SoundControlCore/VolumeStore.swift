@@ -32,6 +32,10 @@ public final class VolumeStore {
         self.settings = Self.load(from: fileURL)
     }
 
+    public var hasActiveOverrides: Bool {
+        settings.values.contains { $0.needsControl }
+    }
+
     public func setting(for identifier: String) -> AppVolumeSetting {
         settings[identifier] ?? AppVolumeSetting()
     }
