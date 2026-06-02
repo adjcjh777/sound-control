@@ -8,6 +8,8 @@
 	<string>SoundControl</string>
 	<key>CFBundleIdentifier</key>
 	<string>local.sound-control.app</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleName</key>
 	<string>SoundControl</string>
 	<key>CFBundlePackageType</key>
